@@ -11,9 +11,12 @@ class Tensor:
         self.grad_fn = grad_fn
         
     def check_type_add_mul(self, other):
-        assert type(other) == Tensor or type(other) == int or type(other) == float, f"Expected other to be of type Tensor, int, or float, not {type(other)}"
+        intcheck = isinstance(other, int)
+        floatcheck = isinstance(other, float)
+        tensorcheck = isinstance(other, Tensor)
+        assert intcheck or floatcheck or tensorcheck, f"Expected other to be of type Tensor, int, or float, not {type(other)}"
         dtype = self.data.dtype
-        if type(other) == int or type(other) == float:
+        if intcheck or floatcheck:
             other = Tensor(np.array([other], dtype=dtype))
         return other
     
@@ -21,49 +24,53 @@ class Tensor:
         # check if broadcasting is needed, align to the right similar to numpy & torch 
         expanded_other_shape = other.shape
         expanded_data_shape = self.shape
+        keepdims = False
         if len(self.shape) < len(other.shape):
             expanded_data_shape = (1,) * (len(other.shape) - len(self.shape)) + self.shape
+            expanded_other_shape = other.shape
         elif len(self.shape) > len(other.shape):
             expanded_other_shape = (1,) * (len(self.shape) - len(other.shape)) + other.shape
             expanded_data_shape = self.shape
+        else:
+            keepdims = True 
         # get axes to sum along else None
         broadcasted_axes_self = tuple(i for i, (a,c) in enumerate(zip(expanded_data_shape, out.shape)) if a == 1 and c > 1)
         broadcasted_axes_other = tuple(i for i, (b,c) in enumerate(zip(expanded_other_shape, out.shape)) if b == 1 and c > 1)
-        return broadcasted_axes_self, broadcasted_axes_other
+        return broadcasted_axes_self, broadcasted_axes_other, keepdims
     
     def __add__(self, other):
         other = self.check_type_add_mul(other)
         out =  Tensor(self.data + other.data, _children=(self, other), grad_fn='AddBackward')
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
             sgrad = 1.0 * out.grad
             ograd = 1.0 * out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+            self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
+            other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __mul__(self, other):
         other = self.check_type_add_mul(other)
         out =  Tensor(self.data * other.data, _children=(self, other), grad_fn='MulBackward')
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
             sgrad = other.data * out.grad
             ograd = self.data * out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+            self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
+            other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __matmul__(self, other):
         assert type(other) == Tensor, f"Expected other to be of type Tensor, not {type(other)}"
         out =  Tensor(self.data @ other.data, _children=(self, other), grad_fn='MatmulBackward')
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
             sgrad = out.grad @ np.swapaxes(other.data, -1, -2)
             ograd = np.swapaxes(self.data, -1, -2) @ out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+            self.grad += np.sum(sgrad, axis=broadcasted_axes_self,keepdims=keepdims) if broadcasted_axes_self else sgrad
+            other.grad += np.sum(ograd, axis=broadcasted_axes_other,keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
@@ -89,12 +96,16 @@ class Tensor:
         out._backward = _backward
         return out
     
-    def sum(self, axis=None, keepdims=False):
-        sum = np.sum(self.data, axis=axis, keepdims=keepdims)
-        sum = sum if axis else np.array([sum])
+    def sum(self, dim=None, keepdims=False):
+        sum = np.sum(self.data, axis=dim, keepdims=keepdims)
+        sum = sum if dim else np.array([sum])
         out =  Tensor(sum, _children=(self,), grad_fn='SumBackward')
         def _backward():
-            self.grad += np.ones_like(self.data)
+            if dim is not None:
+                outgrad = np.expand_dims(out.grad, axis=dim) if out.grad.ndim < self.data.ndim else out.grad
+            else:
+                outgrad = out.grad
+            self.grad += np.ones_like(self.data) * outgrad
         out._backward = _backward
         return out
     

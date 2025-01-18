@@ -144,7 +144,6 @@ def test_matmul():
     b = Tensor(tb.detach().numpy().astype(np.float32))
     c = a @ b
     c.backward()
-    
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
@@ -188,11 +187,23 @@ def test_sum():
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
     ta = torch.randn(10, 3, 3, requires_grad=True)
-    tc = ta.sum(axis=1)
+    tc = ta.sum(dim=1)
     tc.backward(torch.ones_like(tc))
     
     a = Tensor(ta.detach().numpy().astype(np.float32))
-    c = a.sum(axis=1)
+    c = a.sum(dim=1)
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+def test_log():
+    ta = torch.rand(10, 3, 3, requires_grad=True)
+    tc = ta.log()
+    tc.backward(torch.ones_like(tc))
+    
+    a = Tensor(ta.detach().numpy().astype(np.float32))
+    c = a.log()
     c.backward()
     
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
