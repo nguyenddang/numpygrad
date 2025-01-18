@@ -10,8 +10,8 @@ def test_add():
     tc = ta + tb + ta
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = a + b + a
     c.backward()
     
@@ -24,7 +24,7 @@ def test_add():
     tc = tb + ta + tb + tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     b = tb
     c = b + a + b + b
     c.backward()
@@ -36,8 +36,8 @@ def test_add():
     tc = tb + ta + tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = b + a + b
     c.backward()
     
@@ -53,7 +53,7 @@ def test_mul_single():
     tc = ta * tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     b = tb
     c = a * b
     c.backward()
@@ -66,7 +66,7 @@ def test_mul_single():
     tc = tb * ta 
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     b = tb
     c = b * a
     c.backward()
@@ -81,8 +81,8 @@ def test_mul_pointwise():
     tc = ta * tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = a * b
     c.backward()
     
@@ -95,8 +95,8 @@ def test_mul_pointwise():
     tc = tb * ta * tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = b * a * b
     c.backward()
     
@@ -111,8 +111,8 @@ def test_matmul():
     tc = ta @ tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = a @ b
     c.backward()
     
@@ -126,8 +126,8 @@ def test_matmul():
     tc = ta @ tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = a @ b
     c.backward()
     
@@ -140,8 +140,8 @@ def test_matmul():
     tc = ta @ tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = Tensor(tb.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
     c = a @ b
     c.backward()
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
@@ -154,7 +154,7 @@ def test_pow():
     tc = ta ** tb
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     b = tb
     c = a ** b
     c.backward()
@@ -167,7 +167,7 @@ def test_exp():
     tc = ta.exp()
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = a.exp()
     c.backward()
     
@@ -179,7 +179,7 @@ def test_sum():
     tc = ta.sum()
     tc.backward()
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = a.sum()
     c.backward()
     
@@ -190,7 +190,7 @@ def test_sum():
     tc = ta.sum(dim=1)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = a.sum(dim=1)
     c.backward()
     
@@ -202,7 +202,7 @@ def test_log():
     tc = ta.log()
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32))
+    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = a.log()
     c.backward()
     
@@ -221,10 +221,10 @@ def test_mini_mlp():
     logits = h @ w1 + b1
     logits.backward(torch.ones_like(logits))
     
-    wt0 = Tensor(w0.detach().numpy().astype(np.float32))
-    bt0 = Tensor(b0.detach().numpy().astype(np.float32))
-    wt1 = Tensor(w1.detach().numpy().astype(np.float32))
-    bt1 = Tensor(b1.detach().numpy().astype(np.float32))
+    wt0 = Tensor(w0.detach().numpy().astype(np.float32), requires_grad=True)
+    bt0 = Tensor(b0.detach().numpy().astype(np.float32), requires_grad=True)
+    wt1 = Tensor(w1.detach().numpy().astype(np.float32), requires_grad=True)
+    bt1 = Tensor(b1.detach().numpy().astype(np.float32), requires_grad=True)
     xt = Tensor(x.detach().numpy().astype(np.float32))
     
     ht = xt @ wt0 + bt0

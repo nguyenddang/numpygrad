@@ -1,7 +1,7 @@
 import numpy as np 
 
 class Tensor:
-    def __init__(self, data, _children=(), grad_fn=None, requires_grad=True):
+    def __init__(self, data, _children=(), grad_fn=None, requires_grad=False):
         assert isinstance(data, np.ndarray) or isinstance(data, list), f"Expected data to be of type np.ndarray or list, not {type(data)}"
         self.data = data
         self.shape = data.shape

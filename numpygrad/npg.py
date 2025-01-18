@@ -10,7 +10,7 @@ def log(x:Tensor) -> Tensor:
     return x.log()
 
 def mean(x:Tensor, dim:int=None) -> Tensor:
-    axis_size = x.data.shape[dim]
+    axis_size = x.data.shape[dim] if dim is not None else x.data.size
     return x.sum(dim=dim) / axis_size
 
 def sum(x:Tensor, dim:int=None) -> Tensor:
@@ -18,7 +18,7 @@ def sum(x:Tensor, dim:int=None) -> Tensor:
 
 # activation functions
 def relu(x: Tensor) -> Tensor:
-    out = Tensor(np.maximum(0, x.data), _children=(x,), grad_fn='ReLUBackward')
+    out = Tensor(np.maximum(0, x.data), _children=(x,), grad_fn='ReLUBackward', requires_grad=x.requires_grad)
     # relu needs _backward defined, special case
     def _backward():
         x.grad += (x.data > 0) * out.grad  # Gradient is 1 where data > 0, else 0
