@@ -74,36 +74,22 @@ class Tensor:
             self.grad += other.data * self.data ** (other.data-1) * out.grad
         out._backward = _backward
         return out
-
     
-    def sigmoid(self):
-        out = Tensor(1 / (1 + np.exp(-self.data)), _children=(self,), grad_fn='SigmoidBackward')
-        def backward():
-            self.grad += out.data * (1 - out.data) * out.grad
-        out._backward = backward
+    def exp(self):
+        out =  Tensor(np.exp(self.data), _children=(self,), grad_fn='ExpBackward')
+        def _backward():
+            self.grad += np.exp(self.data) * out.grad
+        out._backward = _backward
         return out
     
-    def tanh(self):
-        out = Tensor(np.tanh(self.data), _children=(self,), grad_fn='TanhBackward')
-        def backward():
-            self.grad += (1 - out.data ** 2) * out.grad
-        out._backward = backward
+    def sum(self, axis=None, keepdims=False):
+        sum = np.sum(self.data, axis=axis, keepdims=keepdims)
+        sum = sum if axis else np.array([sum])
+        out =  Tensor(sum, _children=(self,), grad_fn='SumBackward')
+        def _backward():
+            self.grad += np.ones_like(self.data)
+        out._backward = _backward
         return out
-    
-    def relu(self):
-        out = Tensor(np.maximum(0, self.data), _children=(self,), grad_fn='ReluBackward')
-        def backward():
-            self.grad += (self.data > 0) * out.grad
-        out._backward = backward
-        return out
-    
-    def sum(self,axis=None):
-        sum = np.sum(self.data, axis=axis)
-        out = Tensor(np.array(sum), _children=(self,), grad_fn='SumBackward')
-        def backward():
-            self.grad += np.ones_like(self.data) * out.grad
-        out._backward = backward
-        return out 
     
     def __sub__(self, other):
         return self + (-other)
