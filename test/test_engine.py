@@ -19,6 +19,34 @@ def test_add():
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tb = 1.23
+    tc = tb + ta + tb + tb
+    tc.backward(torch.ones_like(tc))
+    
+    a = Tensor(ta.detach().numpy().astype(np.float32))
+    b = tb
+    c = b + a + b + b
+    c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+    ta = torch.randn(2, 3, 3, requires_grad=True)
+    tb = torch.randn(3, requires_grad=True)
+    tc = tb + ta + tb
+    tc.backward(torch.ones_like(tc))
+    
+    a = Tensor(ta.detach().numpy().astype(np.float32))
+    b = Tensor(tb.detach().numpy().astype(np.float32))
+    c = b + a + b
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+    
 
 def test_mul_single():
     ta = torch.randn(10, 3, 3, requires_grad=True)
@@ -33,6 +61,20 @@ def test_mul_single():
     
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tb = 2.765
+    tc = tb * ta 
+    tc.backward(torch.ones_like(tc))
+    
+    a = Tensor(ta.detach().numpy().astype(np.float32))
+    b = tb
+    c = b * a
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
 
 def test_mul_pointwise():
     ta = torch.randn(10, 3, 3, requires_grad=True)
@@ -50,16 +92,17 @@ def test_mul_pointwise():
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
     ta = torch.randn(10, 3, 3, requires_grad=True)
-    tb = 2.765
-    tc = ta * tb
+    tb = torch.randn(3, requires_grad=True)
+    tc = tb * ta * tb
     tc.backward(torch.ones_like(tc))
     
     a = Tensor(ta.detach().numpy().astype(np.float32))
-    b = tb
-    c = a * b
+    b = Tensor(tb.detach().numpy().astype(np.float32))
+    c = b * a * b
     c.backward()
     
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
     
@@ -180,7 +223,8 @@ def test_mini_mlp():
     ht = xt @ wt0 + bt0
     ht = ht.relu()
     logitst = ht @ wt1 + bt1
-    loss = ((logitst - yt) ** 2).sum() / (10 * 5)
+    losst = ((logitst - yt) ** 2).sum() / 50
+    losst.backward()
     
     assert torch.allclose(torch.from_numpy(wt0.grad), w0.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(bt0.grad), b0.grad, rtol=1e-5, atol=1e-6)
