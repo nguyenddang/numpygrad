@@ -41,3 +41,9 @@ def softmax(x: Tensor, dim: int = -1) -> Tensor:
     e_x = x_shifted.exp()
     return e_x / e_x.sum(dim=dim, keepdims=True)
 
+def cross_entropy(logits: Tensor, target: Tensor) -> Tensor:
+    prob = softmax(logits, dim=-1)
+    class_prob = prob[np.arange(prob.shape[0]), target.data]
+    loss = -log(class_prob)
+    return mean(loss)
+

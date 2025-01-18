@@ -110,6 +110,20 @@ def test_gelu():
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
+def test_cross_entropy():
+    ta = torch.randn(3, 4, requires_grad=True)
+    tb = torch.randint(0, 4, (3,), dtype=torch.long)
+    tc = torch.nn.functional.cross_entropy(ta, tb)
+    tc.backward()
+    
+    a = Tensor(ta.detach().numpy().astype(np.float32))
+    b = Tensor(tb.detach().numpy().astype(np.float32))
+    c = npg.cross_entropy(a, b)
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+    
 
     
     

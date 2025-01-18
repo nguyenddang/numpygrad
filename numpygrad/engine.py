@@ -1,14 +1,15 @@
 import numpy as np 
 
 class Tensor:
-    def __init__(self, data, _children=(), grad_fn=None):
+    def __init__(self, data, _children=(), grad_fn=None, requires_grad=True):
         assert isinstance(data, np.ndarray) or isinstance(data, list), f"Expected data to be of type np.ndarray or list, not {type(data)}"
         self.data = data
         self.shape = data.shape
         self._prev = set(_children)
-        self.grad = 0
+        self.grad = np.zeros_like(data, dtype=np.float32)
         self._backward = lambda: None
         self.grad_fn = grad_fn
+        self.requires_grad = requires_grad
         
     def check_type_add_mul(self, other):
         intcheck = isinstance(other, int)
@@ -40,72 +41,86 @@ class Tensor:
     
     def __add__(self, other):
         other = self.check_type_add_mul(other)
-        out =  Tensor(self.data + other.data, _children=(self, other), grad_fn='AddBackward')
+        out_requires_grad = self.requires_grad or other.requires_grad
+        out =  Tensor(self.data + other.data, _children=(self, other), grad_fn='AddBackward', requires_grad=out_requires_grad)
         broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
-            sgrad = 1.0 * out.grad
-            ograd = 1.0 * out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
+            if self.requires_grad:
+                sgrad = 1.0 * out.grad
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
+            if other.requires_grad:
+                ograd = 1.0 * out.grad
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __mul__(self, other):
         other = self.check_type_add_mul(other)
-        out =  Tensor(self.data * other.data, _children=(self, other), grad_fn='MulBackward')
+        out_requires_grad = self.requires_grad or other.requires_grad
+        out =  Tensor(self.data * other.data, _children=(self, other), grad_fn='MulBackward', requires_grad=out_requires_grad)
         broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
-            sgrad = other.data * out.grad
-            ograd = self.data * out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
+            if self.requires_grad:
+                sgrad = other.data * out.grad
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdims) if broadcasted_axes_self else sgrad
+            if other.requires_grad:
+                ograd = self.data * out.grad
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __matmul__(self, other):
         assert type(other) == Tensor, f"Expected other to be of type Tensor, not {type(other)}"
-        out =  Tensor(self.data @ other.data, _children=(self, other), grad_fn='MatmulBackward')
+        out_requires_grad = self.requires_grad or other.requires_grad
+        out =  Tensor(self.data @ other.data, _children=(self, other), grad_fn='MatmulBackward', requires_grad=out_requires_grad)
         broadcasted_axes_self, broadcasted_axes_other, keepdims = self.check_broadcast(other, out)
         def _backward():
-            sgrad = out.grad @ np.swapaxes(other.data, -1, -2)
-            ograd = np.swapaxes(self.data, -1, -2) @ out.grad
-            self.grad += np.sum(sgrad, axis=broadcasted_axes_self,keepdims=keepdims) if broadcasted_axes_self else sgrad
-            other.grad += np.sum(ograd, axis=broadcasted_axes_other,keepdims=keepdims) if broadcasted_axes_other else ograd
+            if self.requires_grad:
+                sgrad = out.grad @ np.swapaxes(other.data, -1, -2)
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self,keepdims=keepdims) if broadcasted_axes_self else sgrad
+            if other.requires_grad:
+                ograd = np.swapaxes(self.data, -1, -2) @ out.grad
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other,keepdims=keepdims) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __pow__(self, other):
         other = self.check_type_add_mul(other)
-        out =  Tensor(self.data ** other.data, _children=(self,), grad_fn='PowBackward')
+        out_requires_grad = self.requires_grad or other.requires_grad
+        out =  Tensor(self.data ** other.data, _children=(self,), grad_fn='PowBackward', requires_grad=out_requires_grad)
         def _backward():
-            self.grad += other.data * self.data ** (other.data-1) * out.grad
+            if self.requires_grad:
+                self.grad += other.data * self.data ** (other.data-1) * out.grad
         out._backward = _backward
         return out
     
     def exp(self):
-        out =  Tensor(np.exp(self.data), _children=(self,), grad_fn='ExpBackward')
+        out =  Tensor(np.exp(self.data), _children=(self,), grad_fn='ExpBackward', requires_grad=self.requires_grad)
         def _backward():
-            self.grad += np.exp(self.data) * out.grad
+            if self.requires_grad:
+                self.grad += np.exp(self.data) * out.grad
         out._backward = _backward
         return out
     
     def log(self):
-        out =  Tensor(np.log(self.data), _children=(self,), grad_fn='LogBackward')
+        out =  Tensor(np.log(self.data), _children=(self,), grad_fn='LogBackward', requires_grad=self.requires_grad)
         def _backward():
-            self.grad += 1 / self.data * out.grad
+            if self.requires_grad:
+                self.grad += 1 / self.data * out.grad
         out._backward = _backward
         return out
     
     def sum(self, dim=None, keepdims=False):
         sum = np.sum(self.data, axis=dim, keepdims=keepdims)
         sum = sum if dim else np.array([sum])
-        out =  Tensor(sum, _children=(self,), grad_fn='SumBackward')
+        out =  Tensor(sum, _children=(self,), grad_fn='SumBackward', requires_grad=self.requires_grad)
         def _backward():
-            if dim is not None:
-                outgrad = np.expand_dims(out.grad, axis=dim) if out.grad.ndim < self.data.ndim else out.grad
-            else:
-                outgrad = out.grad
-            self.grad += np.ones_like(self.data) * outgrad
+            if self.requires_grad:
+                if dim is not None:
+                    outgrad = np.expand_dims(out.grad, axis=dim) if out.grad.ndim < self.data.ndim else out.grad
+                else:
+                    outgrad = out.grad
+                self.grad += np.ones_like(self.data) * outgrad
         out._backward = _backward
         return out
     
@@ -132,6 +147,8 @@ class Tensor:
     
     def backward(self):
         # sort children in topological order
+        if not self.requires_grad:
+            raise RuntimeError("Cannot call backward() on a tensor that does not require gradients.")
         topo = []
         visited = set()
         def build_topo(v):
@@ -149,6 +166,19 @@ class Tensor:
     def __repr__(self):
         data_str = np.array2string(self.data, separator=', ', prefix='tensor(', suffix=')', precision=4) # makes formatting nicer
         return 'tensor(' + data_str + ', grad_fn=' + str(self.grad_fn) + ')'
+    
+    def __getitem__(self, idx):
+        sliced_data = self.data[idx]
+        out = Tensor(sliced_data, _children=(self,), grad_fn='IndexBackward', requires_grad=self.requires_grad)
+        
+        def _backward():
+            if self.requires_grad:
+                if isinstance(idx, tuple):
+                    np.add.at(self.grad, idx, out.grad)
+                else:
+                    self.grad[idx] += out.grad
+        out._backward = _backward
+        return out
         
     
         
