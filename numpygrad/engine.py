@@ -82,6 +82,13 @@ class Tensor:
         out._backward = _backward
         return out
     
+    def log(self):
+        out =  Tensor(np.log(self.data), _children=(self,), grad_fn='LogBackward')
+        def _backward():
+            self.grad += 1 / self.data * out.grad
+        out._backward = _backward
+        return out
+    
     def sum(self, axis=None, keepdims=False):
         sum = np.sum(self.data, axis=axis, keepdims=keepdims)
         sum = sum if axis else np.array([sum])

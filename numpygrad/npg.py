@@ -3,16 +3,28 @@
 import numpy as np
 from engine import Tensor
 
+# utility functions
+def exp(x:Tensor) -> Tensor:
+    return x.exp()
+
+def log(x:Tensor) -> Tensor:
+    return x.log()
+
+def mean(x:Tensor, axis:int=None) -> Tensor:
+    axis_size = x.data.shape[axis]
+    return x.sum(axis=axis) / axis_size
+
+def sum(x:Tensor, axis:int=None) -> Tensor:
+    return x.sum(axis=axis)
+
 # activation functions
 def relu(x: Tensor) -> Tensor:
     out = Tensor(np.maximum(0, x.data), _children=(x,), grad_fn='ReLUBackward')
     # relu needs _backward defined, special case
     def _backward():
         x.grad += (x.data > 0) * out.grad  # Gradient is 1 where data > 0, else 0
-    
     out._backward = _backward
     return out
-
 def sigmoid(x: Tensor) -> Tensor:
     return 1 / (1 + (-x).exp())
 
