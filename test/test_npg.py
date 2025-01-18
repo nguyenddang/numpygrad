@@ -1,8 +1,6 @@
-from numpygrad import npg
-from numpygrad.engine import Tensor
 import torch
 import numpy as np
-
+import npg
 
 torch.manual_seed(42)
 np.random.seed(42)
@@ -11,7 +9,7 @@ def test_softmax():
     tc = torch.nn.functional.softmax(ta, dim=-1)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.softmax(a, dim=-1)
     c.backward()
     
@@ -22,7 +20,7 @@ def test_softmax():
     tc = torch.nn.functional.softmax(ta, dim=-1)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.softmax(a, dim=-1)
     c.backward()
     
@@ -33,7 +31,7 @@ def test_softmax():
     tc = torch.nn.functional.softmax(ta, dim=-1)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.softmax(a, dim=-1)
     c.backward()
     
@@ -45,7 +43,7 @@ def test_mean():
     tc = ta.mean(dim=1)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.mean(a, dim=1)
     c.backward()
     
@@ -56,7 +54,7 @@ def test_mean():
     tc = ta.mean(dim=0)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.mean(a, dim=0)
     c.backward()
     
@@ -68,7 +66,7 @@ def test_sigmoid():
     tc = torch.sigmoid(ta)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.sigmoid(a)
     c.backward()
     
@@ -80,7 +78,7 @@ def test_relu():
     tc = torch.nn.functional.relu(ta)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.relu(a)
     c.backward()
     
@@ -92,7 +90,7 @@ def test_tanh():
     tc = torch.tanh(ta)
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.tanh(a)
     c.backward()
     
@@ -104,7 +102,7 @@ def test_gelu():
     tc = 0.5 * ta * (1 + torch.tanh(np.sqrt(2 / np.pi) * (ta + 0.044715 * ta**3)))
     tc.backward(torch.ones_like(tc))
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
     c = npg.gelu(a)
     c.backward()
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
@@ -116,8 +114,8 @@ def test_cross_entropy():
     tc = torch.nn.functional.cross_entropy(ta, tb)
     tc.backward()
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-    b = Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
     c = npg.cross_entropy(a, b)
     c.backward()
     
@@ -129,8 +127,8 @@ def test_cross_entropy():
     tc = torch.nn.functional.cross_entropy(ta, tb)
     tc.backward()
     
-    a = Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-    b = Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
     c = npg.cross_entropy(a, b)
     c.backward()
     
