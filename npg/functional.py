@@ -9,12 +9,28 @@ def exp(x:npg.Tensor) -> npg.Tensor:
 def log(x:npg.Tensor) -> npg.Tensor:
     return x.log()
 
-def mean(x:npg.Tensor, dim:int=None) -> npg.Tensor:
+def sqrt(x:npg.Tensor) -> npg.Tensor:
+    return x**0.5
+
+def mean(x:npg.Tensor, dim:int=None, keepdims=False) -> npg.Tensor:
     axis_size = x.data.shape[dim] if dim is not None else x.data.size
-    return x.sum(dim=dim) / axis_size
+    return x.sum(dim=dim, keepdims=keepdims) / axis_size
+
+def var(x:npg.Tensor, dim:int=None, keepdims=False) -> npg.Tensor:
+    mean_x = mean(x, dim, keepdims=keepdims)
+    return mean((x - mean_x)**2, dim, keepdims=keepdims)
 
 def sum(x:npg.Tensor, dim:int=None) -> npg.Tensor:
     return x.sum(axis=dim)
+
+def randn(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
+    return npg.Tensor(np.random.randn(*shape).astype(dtype), requires_grad=requires_grad)
+
+def zeros(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
+    return npg.Tensor(np.zeros(*shape).astype(dtype), requires_grad=requires_grad)
+
+def ones(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
+    return npg.Tensor(np.ones(*shape).astype(dtype), requires_grad=requires_grad)
 
 # activation functions
 def relu(x: npg.Tensor) -> npg.Tensor:
@@ -51,3 +67,5 @@ def cross_entropy(logits: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
 
 def mse_loss(pred: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
     return mean((pred - target)**2)
+
+

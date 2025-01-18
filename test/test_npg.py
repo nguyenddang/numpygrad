@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import npg
 
+'''Test the npg.nn.functional module'''
+
 torch.manual_seed(42)
 np.random.seed(42)
 def test_softmax():
