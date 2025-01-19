@@ -107,7 +107,7 @@ class Tensor:
                 outgrad = np.expand_dims(out.grad, axis=dim) if dim is not None and not keepdim else out.grad
                 self.grad += np.ones_like(self.data) * outgrad
         out._backward = _backward
-        return out
+        return out   
     
     def reshape(self, *shape):
         new_data = self.data.reshape(shape)
