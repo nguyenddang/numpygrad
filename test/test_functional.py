@@ -9,13 +9,16 @@ np.random.seed(42)
 
 def test_mean():
     ta = torch.randn(3, 4, requires_grad=True)
-    tc = ta.mean(dim=1)
+    tb = torch.randn(3, 4, requires_grad=True)
+    tc = tb - ta.mean(dim=1, keepdim=True)
     tc.backward(torch.ones_like(tc))
     
     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-    c = npg.mean(a, dim=1)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = b - npg.mean(a, dim=1, keepdim=True)
     c.backward()
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
     ta = torch.randn(10,3,7, requires_grad=True)

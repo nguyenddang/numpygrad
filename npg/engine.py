@@ -28,47 +28,49 @@ class Tensor:
         # find axes that need to be broadcasted
         broadcasted_axes_self = tuple(i for i, (a, c) in enumerate(zip(expanded_self_shape, out.shape)) if a == 1 and c > 1)
         broadcasted_axes_other = tuple(i for i, (b, c) in enumerate(zip(expanded_other_shape, out.shape)) if b == 1 and c > 1)
-        return broadcasted_axes_self, broadcasted_axes_other
+        keepdim_self = (len(self.shape) == len(other.shape)) and (len(broadcasted_axes_self)) > 0
+        keepdim_other = (len(self.shape) == len(other.shape)) and (len(broadcasted_axes_other)) > 0
+        return broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other
     
     def __add__(self, other):
         other, out_requires_grad = self.check_op(other)
         out = Tensor(self.data + other.data, _children=(self, other), grad_fn='AddBackward', requires_grad=out_requires_grad)
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other = self.check_broadcast(other, out)
         def _backward():
             if self.requires_grad:
                 sgrad = 1.0 * out.grad
-                self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else sgrad
             if other.requires_grad:
                 ograd = 1.0 * out.grad
-                other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __mul__(self, other):
         other, out_requires_grad = self.check_op(other)
         out = Tensor(self.data * other.data, _children=(self, other), grad_fn='MulBackward', requires_grad=out_requires_grad)
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other = self.check_broadcast(other, out)
         def _backward():
             if self.requires_grad:
                 sgrad = other.data * out.grad
-                self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else sgrad
             if other.requires_grad:
                 ograd = self.data * out.grad
-                other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     
     def __matmul__(self, other):
         other, out_requires_grad = self.check_op(other)
         out =  Tensor(self.data @ other.data, _children=(self, other), grad_fn='MatmulBackward', requires_grad=out_requires_grad)
-        broadcasted_axes_self, broadcasted_axes_other = self.check_broadcast(other, out)
+        broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other = self.check_broadcast(other, out)
         def _backward():
             if self.requires_grad:
                 sgrad = out.grad @ np.swapaxes(other.data, -1, -2)
-                self.grad += np.sum(sgrad, axis=broadcasted_axes_self) if broadcasted_axes_self else sgrad
+                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else sgrad
             if other.requires_grad:
                 ograd = np.swapaxes(self.data, -1, -2) @ out.grad
-                other.grad += np.sum(ograd, axis=broadcasted_axes_other) if broadcasted_axes_other else ograd
+                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else ograd
         out._backward = _backward
         return out
     

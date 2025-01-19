@@ -23,17 +23,17 @@ class Linear(Module):
     
     def __init__(self, in_features, out_features, bias=True):
         super().__init__()
-        self.W = npg.randn(in_features, out_features, requires_grad=True)
-        self.b = npg.randn(out_features, requires_grad=True) if bias else None
+        self.weight = npg.randn(in_features, out_features, requires_grad=True)
+        self.bias = npg.randn(out_features, requires_grad=True) if bias else None
         
     def forward(self, x):
-        return x @ self.W + self.b
+        return x @ self.weight + self.bias
     
     def parameters(self):
-        return [self.W, self.b] if self.b is not None else [self.W]
+        return [self.weight, self.bias] if self.bias is not None else [self.weight]
     
     def __repr__(self):
-        return f"npg.nn.Linear({self.W.data.shape[0]}, {self.W.data.shape[1]})"
+        return f"npg.nn.Linear({self.weight.data.shape[0]}, {self.weight.data.shape[1]})"
 
 # Activation functions
 class ReLU(Module):
@@ -81,24 +81,27 @@ class GeLU(Module):
         return "npg.nn.GeLU()"
     
 # Normalization
-class Layernorm(Module):
+class LayerNorm(Module):
     
-    def __init__(self, normalized_shape, eps=1e-5, bias=True):
+    def __init__(self, ndim, eps=1e-5, bias=True):
         super().__init__()
-        self.weight = npg.ones(normalized_shape, requires_grad=True)
-        self.bias = npg.zeros(normalized_shape, requires_grad=True) if bias else None
+        self.weight = npg.ones(ndim, requires_grad=True)
+        self.bias = npg.zeros(ndim, requires_grad=True) if bias else None
         self.eps = eps
     
     def forward(self, x):
-        xmean = npg.mean(x, dim=-1, keepdims=True)
-        xvar = npg.var(x, dim=-1, keepdims=True)
-        xhat = (x - xmean) / npg.sqrt(xvar + self.eps)
-        out = xhat * self.weight + self.bias
+        mean = npg.mean(x, dim=-1, keepdim=True)
+        var = npg.var(x, dim=-1, keepdim=True)
+        norm = (x - mean) / npg.sqrt(var + self.eps)
+        out = norm * self.weight + self.bias
         return out
     
     def parameters(self):
-        return [self.weight, self.bias] if self.beta is not None else [self.weight]
+        return [self.weight, self.bias] if self.bias is not None else [self.weight]
 
+    def __repr__(self):
+        return f"npg.nn.LayerNorm({self.weight.data.shape[0]})"
+    
 # Regularisation
 class Dropout(Module):
     def __init__(self, p=0.5):
@@ -111,6 +114,9 @@ class Dropout(Module):
             mask = (npg.rand(*x.data.shape) > self.p)
             return x * mask / (1 - self.p)
         return x
+    
+    def __repr__(self):
+        return f"npg.nn.Dropout(p={self.p})"
 
 # Loss functions
         

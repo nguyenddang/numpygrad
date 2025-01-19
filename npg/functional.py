@@ -110,11 +110,20 @@ def softmax(x: npg.Tensor, dim: int = -1) -> npg.Tensor:
     return out
  
 # loss functions
-def cross_entropy(logits: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
-    prob = npg.softmax(logits, dim=-1)
-    class_prob = prob[np.arange(prob.shape[0]), target.data]
-    loss = -npg.log(class_prob)
-    return npg.mean(loss)
+def cross_entropy(x: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
+    max_vals = np.max(x.data, axis=-1, keepdims=True)  # shift for stability
+    exp_data = np.exp(x.data - max_vals)
+    probs = exp_data / np.sum(exp_data, axis=-1, keepdims=True)
+    loss = -np.log(probs[np.arange(x.data.shape[0]), target.data]).mean()
+    out = npg.Tensor(np.array(loss), _children=(x, target), grad_fn='CrossEntropyBackward', requires_grad=x.requires_grad)
+    
+    def _backward():
+        if x.requires_grad:
+            softmax_x = probs
+            softmax_x[np.arange(x.data.shape[0]), target.data] -= 1
+            x.grad += softmax_x * out.grad / x.data.shape[0]
+    out._backward = _backward
+    return out
 
 def mse_loss(pred: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
     return npg.mean((pred - target)**2)

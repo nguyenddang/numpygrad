@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-class LayerNorm(nn.Module):
+class LayerNormTorch(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
 
     def __init__(self, ndim, bias):
@@ -18,7 +18,7 @@ class LayerNorm(nn.Module):
     def forward(self, input):
         return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
 
-class CausalSelfAttention(nn.Module):
+class CausalSelfAttentionTorch(nn.Module):
 
     def __init__(self, config):
         super().__init__()
@@ -67,12 +67,12 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_dropout(self.c_proj(y))
         return y
 
-class MLP(nn.Module):
+class MLPTorch(nn.Module):
 
     def __init__(self, config):
         super().__init__()
         self.c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
-        self.gelu    = nn.GELU()
+        self.gelu    = nn.GELU(approximate='tanh')
         self.c_proj  = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
         self.dropout = nn.Dropout(config.dropout)
 
@@ -83,14 +83,14 @@ class MLP(nn.Module):
         x = self.dropout(x)
         return x
 
-class Block(nn.Module):
+class BlockTorch(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
-        self.attn = CausalSelfAttention(config)
-        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = MLP(config)
+        self.ln_1 = LayerNormTorch(config.n_embd, bias=config.bias)
+        self.attn = CausalSelfAttentionTorch(config)
+        self.ln_2 = LayerNormTorch(config.n_embd, bias=config.bias)
+        self.mlp = MLPTorch(config)
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
