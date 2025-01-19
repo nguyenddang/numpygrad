@@ -96,80 +96,106 @@ def test_gelu():
     c = npg.gelu(a)
     c.backward()
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6) 
+    
+def test_softmax():
+    ta = torch.randn(3, requires_grad=True)
+    tc = torch.nn.functional.softmax(ta, dim=-1)
+    tc.backward(torch.ones_like(tc))
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.softmax(a, dim=-1)
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
+    ta = torch.randn(3, 4, requires_grad=True)
+    tc = torch.nn.functional.softmax(ta, dim=0)
+    tc.backward(torch.ones_like(tc))
     
-# def test_softmax():
-#     ta = torch.randn(3, requires_grad=True)
-#     tc = torch.nn.functional.softmax(ta, dim=-1)
-#     tc.backward(torch.ones_like(tc))
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.softmax(a, dim=0)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     c = npg.softmax(a, dim=-1)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+    ta = torch.randn(3, 4, 5, requires_grad=True)
+    tc = torch.nn.functional.softmax(ta, dim=-1)
+    tc.backward(torch.ones_like(tc))
     
-#     ta = torch.randn(3, 4, requires_grad=True)
-#     tc = torch.nn.functional.softmax(ta, dim=-1)
-#     tc.backward(torch.ones_like(tc))
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.softmax(a, dim=-1)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     c = npg.softmax(a, dim=-1)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+    ta = torch.tensor([[0, float('-inf')], [0, float('-inf')]], requires_grad=True, dtype=torch.float)
+    tc = torch.nn.functional.softmax(ta, dim=-1)
+    tc.backward(torch.ones_like(tc))
     
-#     ta = torch.randn(3, 4, 5, requires_grad=True)
-#     tc = torch.nn.functional.softmax(ta, dim=-1)
-#     tc.backward(torch.ones_like(tc))
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.softmax(a, dim=-1)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     c = npg.softmax(a, dim=-1)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+def test_cross_entropy():
+    ta = torch.randn(3, 4, requires_grad=True)
+    tb = torch.randint(0, 4, (3,), dtype=torch.long)
+    tc = torch.nn.functional.cross_entropy(ta, tb)
+    tc.backward()
     
-#     ta = torch.tensor([[0, float('-inf')], [0, float('-inf')]], requires_grad=True, dtype=torch.float)
-#     tc = torch.nn.functional.softmax(ta, dim=-1)
-#     tc.backward(torch.ones_like(tc))
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
+    c = npg.cross_entropy(a, b)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     c = npg.softmax(a, dim=-1)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    ta = torch.randn(32, 64, requires_grad=True)
+    tb = torch.randint(0, 64, (32, ), dtype=torch.long)
+    tc = torch.nn.functional.cross_entropy(ta, tb)
+    tc.backward()
     
-# def test_cross_entropy():
-#     ta = torch.randn(3, 4, requires_grad=True)
-#     tb = torch.randint(0, 4, (3,), dtype=torch.long)
-#     tc = torch.nn.functional.cross_entropy(ta, tb)
-#     tc.backward()
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
+    c = npg.cross_entropy(a, b)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
-#     c = npg.cross_entropy(a, b)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+def test_mse():
+    ta = torch.randn(3, 4, requires_grad=True)
+    tb = torch.randn(3, 4, requires_grad=True)
+    tc = torch.nn.functional.mse_loss(ta, tb)
+    tc.backward()
     
-#     ta = torch.randn(32, 64, requires_grad=True)
-#     tb = torch.randint(0, 64, (32, ), dtype=torch.long)
-#     tc = torch.nn.functional.cross_entropy(ta, tb)
-#     tc.backward()
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.mse_loss(a, b)
+    c.backward()
     
-#     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-#     b = npg.Tensor(tb.detach().numpy().astype(np.int64), requires_grad=True)
-#     c = npg.cross_entropy(a, b)
-#     c.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
-#     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
-#     assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
+    ta = torch.randn(32, 64, requires_grad=True)
+    tb = torch.randn(32, 64, requires_grad=True)
+    tc = torch.nn.functional.mse_loss(ta, tb)
+    tc.backward()
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = npg.mse_loss(a, b)
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc.data, rtol=1e-5, atol=1e-6)
     
     
     

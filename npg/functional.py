@@ -87,7 +87,6 @@ def tanh(x: npg.Tensor) -> npg.Tensor:
 def gelu(x: npg.Tensor) -> npg.Tensor:
     gelu = 0.5 * x.data * (1 + np.tanh(np.sqrt(2 / np.pi) * (x.data + 0.044715 * x.data**3)))
     out = npg.Tensor(gelu, _children=(x,), grad_fn='GELUBackward', requires_grad=x.requires_grad)
-
     def _backward():
         if x.requires_grad:
             tanh_out = np.tanh(np.sqrt(2 / np.pi) * (x.data + 0.044715 * x.data**3))
@@ -98,18 +97,26 @@ def gelu(x: npg.Tensor) -> npg.Tensor:
     return out
 
 def softmax(x: npg.Tensor, dim: int = -1) -> npg.Tensor:
-    x_shifted = x - npg.Tensor(np.max(x.data, axis=dim, keepdims=True))
-    e_x = x_shifted.exp()
-    return e_x / e_x.sum(dim=dim, keepdims=True)
-
+    max_vals = np.max(x.data, axis=dim, keepdims=True)  # shift for stability
+    exp_data = np.exp(x.data - max_vals)
+    softmax = exp_data / np.sum(exp_data, axis=dim, keepdims=True) 
+    out = npg.Tensor(softmax, _children=(x,), grad_fn='SoftmaxBackward', requires_grad=x.requires_grad)
+    def _backward():
+        if x.requires_grad:
+            softmax_x = out.data
+            grad = softmax_x * (out.grad - np.sum(out.grad * softmax_x, axis=dim, keepdims=True))
+            x.grad += grad
+    out._backward = _backward
+    return out
+ 
 # loss functions
 def cross_entropy(logits: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
-    prob = softmax(logits, dim=-1)
+    prob = npg.softmax(logits, dim=-1)
     class_prob = prob[np.arange(prob.shape[0]), target.data]
-    loss = -log(class_prob)
-    return mean(loss)
+    loss = -npg.log(class_prob)
+    return npg.mean(loss)
 
 def mse_loss(pred: npg.Tensor, target: npg.Tensor) -> npg.Tensor:
-    return mean((pred - target)**2)
+    return npg.mean((pred - target)**2)
 
 
