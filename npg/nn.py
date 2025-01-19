@@ -8,9 +8,9 @@ class Module:
     def forward(self, *inputs):
         raise NotImplementedError
     
-    def zero_grad(self):
+    def zero_grad(self, set_to_none=False):
         for p in self.parameters:
-            p.grad = 0
+            p.grad = None if set_to_none else npg.zeros_like(p)
             
     def parameters(self):
         return []

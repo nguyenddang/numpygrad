@@ -1,3 +1,5 @@
+'''Reference Andrej Karpathy's nanogpt https://github.com/karpathy/nanoGPT'''
+
 import npg
 import npg.nn as nn # don't mistake this for torch.nn:)
 from dataclasses import dataclass

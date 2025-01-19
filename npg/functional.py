@@ -51,6 +51,9 @@ def rand(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
 def zeros(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.zeros(*shape).astype(dtype), requires_grad=requires_grad)
 
+def zeros_like(x:npg.Tensor) -> npg.Tensor:
+    return npg.Tensor(np.zeros_like(x.data), requires_grad=x.requires_grad)
+
 def ones(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.ones(*shape).astype(dtype), requires_grad=requires_grad)
 
