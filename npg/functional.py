@@ -21,16 +21,22 @@ def var(x:npg.Tensor, dim:int=None, keepdims=False) -> npg.Tensor:
     return mean((x - mean_x)**2, dim, keepdims=keepdims)
 
 def sum(x:npg.Tensor, dim:int=None) -> npg.Tensor:
-    return x.sum(axis=dim)
+    return x.sum(dim=dim)
 
 def randn(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.random.randn(*shape).astype(dtype), requires_grad=requires_grad)
+
+def rand(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
+    return npg.Tensor(np.random.rand(*shape).astype(dtype), requires_grad=requires_grad)
 
 def zeros(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.zeros(*shape).astype(dtype), requires_grad=requires_grad)
 
 def ones(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.ones(*shape).astype(dtype), requires_grad=requires_grad)
+
+def tril(x:npg.Tensor) -> npg.Tensor:
+    return npg.Tensor(np.tril(x.data), _children=(x,))
 
 # activation functions
 def relu(x: npg.Tensor) -> npg.Tensor:

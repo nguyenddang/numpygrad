@@ -2,6 +2,9 @@ import npg
 
 class Module:
     
+    def __init__(self):
+        self.training = True
+    
     def forward(self, *inputs):
         raise NotImplementedError
     
@@ -95,6 +98,21 @@ class Layernorm(Module):
     
     def parameters(self):
         return [self.weight, self.bias] if self.beta is not None else [self.weight]
+
+# Regularisation
+class Dropout(Module):
+    def __init__(self, p=0.5):
+        super().__init__()
+        assert 0 <= p < 1, "Dropout probability must be in the range [0, 1)."
+        self.p = p
+
+    def forward(self, x):
+        if self.training:
+            mask = (npg.rand(*x.data.shape) > self.p)
+            return x * mask / (1 - self.p)
+        return x
+
+# Loss functions
         
         
 

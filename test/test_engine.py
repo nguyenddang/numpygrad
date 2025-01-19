@@ -6,8 +6,8 @@ import npg
 torch.manual_seed(42)
 np.random.seed(42)
 def test_add():
-    ta = torch.randn(10, 3, 3, requires_grad=True)
-    tb = torch.randn(10, 3, 3, requires_grad=True)
+    ta = torch.randn(2, 3, 3, requires_grad=True)
+    tb = torch.randn(2, 3, 3, requires_grad=True)
     tc = ta + tb + ta
     tc.backward(torch.ones_like(tc))
     
@@ -175,6 +175,18 @@ def test_exp():
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
+def test_log():
+    ta = torch.rand(10, 3, 3, requires_grad=True)
+    tc = ta.log()
+    tc.backward(torch.ones_like(tc))
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    c = a.log()
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
 def test_sum():
     ta = torch.randn(10, 3, 3, requires_grad=True)
     tc = ta.sum()
@@ -198,18 +210,102 @@ def test_sum():
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
-def test_log():
-    ta = torch.rand(10, 3, 3, requires_grad=True)
-    tc = ta.log()
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tc = ta.sum(dim=1, keepdim=True)
     tc.backward(torch.ones_like(tc))
     
     a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
-    c = a.log()
+    c = a.sum(dim=1, keepdim=True)
     c.backward()
     
     assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
     
+def test_reshape():
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tb  = torch.randn(30, 3, requires_grad=True)
+    tc = ta.reshape(30, 3) + tb
+    tc.backward(torch.ones_like(tc))
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = a.reshape(30, 3) + b
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tb = torch.randn(90, requires_grad=True)
+    tc = ta.reshape(-1) + tb
+    tc.backward(torch.ones_like(tc))
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = a.reshape(-1) + b
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+def test_split():
+    qkv = torch.randn(384, 384, requires_grad=True)
+    x = torch.randn(2, 384)
+    attn = x @ qkv
+    q, k, v = attn.split(128, dim=-1)    
+    sum = q + k + v
+    sum.backward(torch.ones_like(sum))
+    
+    qkvn = npg.Tensor(qkv.detach().numpy().astype(np.float32), requires_grad=True)
+    xn = npg.Tensor(x.detach().numpy().astype(np.float32))
+    attnn = xn @ qkvn
+    qn, kn, vn = attnn.split(128, dim=-1)
+    sumn = qn + kn + vn
+    sumn.backward()
+    assert torch.allclose(torch.from_numpy(qkvn.grad), qkv.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(qn.data), q, rtol=1e-5, atol=1e-4)
+    assert torch.allclose(torch.from_numpy(kn.data), k, rtol=1e-5, atol=1e-4)
+    assert torch.allclose(torch.from_numpy(vn.data), v, rtol=1e-5, atol=1e-4)
+    assert torch.allclose(torch.from_numpy(sumn.data), sum, rtol=1e-5, atol=1e-4)
+    
+def test_transpose():
+    
+    ta = torch.randn(10, 3, 3, requires_grad=True)
+    tb = torch.randn(3, 10, requires_grad=True)
+    tat = ta.transpose(0, 1)
+    tc = tat @ tb
+    tc.backward(torch.ones_like(tc))
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    at = a.transpose(0, 1)
+    c = at @ b
+    c.backward()
+    
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(c.data), tc, rtol=1e-5, atol=1e-6)
+    
+def test_masked_fill():
+    ta = torch.randint(0, 2, (2, 3, 3)).float()
+    ta.requires_grad = True
+    tb = torch.randn(2, 3, 3, requires_grad=True) 
+    tc = ta.masked_fill(ta== 0.0, 3.432) 
+    td = tc + tb
+    sum = torch.sum(td)
+    sum.backward()
+    
+    a = npg.Tensor(ta.detach().numpy().astype(np.float32), requires_grad=True)
+    b = npg.Tensor(tb.detach().numpy().astype(np.float32), requires_grad=True)
+    c = a.masked_fill(a==0.0, 3.432)
+    d = c + b
+    sumn = npg.sum(d)
+    sumn.backward()
+    assert torch.allclose(torch.from_numpy(a.grad), ta.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(b.grad), tb.grad, rtol=1e-5, atol=1e-6)
+    assert torch.allclose(torch.from_numpy(d.data), td, rtol=1e-5, atol=1e-4)
     
 def test_mini_mlp():
     w0 = torch.randn(3, 4, requires_grad=True)
