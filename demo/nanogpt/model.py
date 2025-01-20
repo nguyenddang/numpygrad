@@ -65,8 +65,55 @@ class Block(nn.Module):
         x = x + self.attn(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
         return x
+@dataclass
+class GPTConfig:
+    # config for nanogpt shakespeare
+    block_size: int = 64
+    vocab_size: int = 65
+    n_layer: int = 4
+    n_head: int = 4
+    n_embd: int = 128
+    dropout: float = 0.0
+    bias: bool = True
     
+class GPT(nn.Module):
+    
+    def __init__(self, config):
+        super().__init__()
+        assert config.vocab_size is not None
+        assert config.block_size is not None
+        self.config = config
+        self.wte = nn.Embedding(config.vocab_size, config.n_embd)
+        self.wpe = nn.Embedding(config.block_size, config.n_embd)
+        self.blocks = nn.ModuleList([Block(config) for _ in range(config.n_layer)])
+        self.drop = nn.Dropout(config.dropout)
+        self.ln_f = nn.LayerNorm(config.n_embd, bias=config.bias)
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=config.bias)
+        # self.wte.weight = self.lm_head.weight
+        print(f"number of parameters: {self.get_num_params()}")
 
+    def get_num_params(self):
+        return sum([np.prod(p.data.shape) for p in self.parameters()])
+
+    def forward(self, x: npg.Tensor, target: npg.Tensor):
+        b, t = x.shape
+        assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
+        pos = np.arange(0, t, dtype=np.int32)
+        tok_emb = self.wte(x)
+        pos_emb = self.wpe(pos)
+        x = self.drop(tok_emb + pos_emb)
+        
+        for block in self.blocks:
+            x = block(x)
+        
+        x = self.ln_f(x)
+        if target is not None:
+            logits = self.lm_head(x)
+            loss = npg.cross_entropy(logits.reshape(-1, 65), target.reshape(-1))
+        else:
+            logits = self.lm_head(x[:, [-1], :])
+            loss = None
+        return logits, loss
         
         
 
