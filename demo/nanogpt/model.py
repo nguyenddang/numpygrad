@@ -89,7 +89,8 @@ class GPT(nn.Module):
         self.drop = nn.Dropout(config.dropout)
         self.ln_f = nn.LayerNorm(config.n_embd, bias=config.bias)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=config.bias)
-        # self.wte.weight = self.lm_head.weight
+        self.wte.weight = self.lm_head.weight
+        self.apply(self._init_weights)
         print(f"number of parameters: {self.get_num_params()}")
 
     def get_num_params(self):
@@ -114,6 +115,17 @@ class GPT(nn.Module):
             logits = self.lm_head(x[:, [-1], :])
             loss = None
         return logits, loss
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            module.weight.data = np.random.normal(0.0, 0.02, module.weight.data.shape).astype(np.float32)
+            if module.bias is not None:
+                module.bias.data = np.zeros_like(module.bias.data)
+        elif isinstance(module, nn.Embedding):
+            module.weight.data = np.random.normal(0.0, 0.02, module.weight.data.shape).astype(np.float32)
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data = np.zeros_like(module.bias.data)
+            module.weight.data = np.ones_like(module.weight.data)
         
         
 
