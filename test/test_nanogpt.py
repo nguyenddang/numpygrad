@@ -2,7 +2,7 @@ import npg
 import torch
 import numpy as np
 from demo.nanogpt.model import CausualSelfAttention, MLP, Block
-from demo.nanogpt.test.model_torch import CausalSelfAttentionTorch, GPTConfig, LayerNormTorch, MLPTorch, BlockTorch
+from model_torch import CausalSelfAttentionTorch, GPTConfig, LayerNormTorch, MLPTorch, BlockTorch
 
 def test_attention():
     config = GPTConfig(block_size=4, n_embd=4, n_head=2, n_layer=1, dropout=0.0)
@@ -26,6 +26,7 @@ def test_attention():
     logitsn = blockn(xn)
     lossn = npg.cross_entropy(logitsn.reshape(-1, 4), yn.reshape(-1))
     lossn.backward()
+    
     assert torch.allclose(torch.from_numpy(blockn.c_attn.weight.grad), blockt.c_attn.weight.grad.T, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(blockn.c_attn.bias.grad), blockt.c_attn.bias.grad, rtol=1e-5, atol=1e-6)
     assert torch.allclose(torch.from_numpy(blockn.c_proj.weight.grad), blockt.c_proj.weight.grad.T, rtol=1e-5, atol=1e-6)

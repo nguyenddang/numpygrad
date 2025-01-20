@@ -4,3 +4,10 @@ __pycache__/
 *.pyd
 
 *.ipynb
+
+**/data/
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore egg-info directory
+numpygrad.egg-info/

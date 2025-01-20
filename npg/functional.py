@@ -48,6 +48,9 @@ def randn(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
 def rand(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.random.rand(*shape).astype(dtype), requires_grad=requires_grad)
 
+def randint(low, high=None, size=None, requires_grad=False, dtype=np.int32) -> npg.Tensor:
+    return npg.Tensor(np.random.randint(low, high, size).astype(dtype), requires_grad=requires_grad)
+
 def zeros(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.zeros(*shape).astype(dtype), requires_grad=requires_grad)
 

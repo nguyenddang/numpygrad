@@ -224,17 +224,20 @@ class Tensor:
         return 'tensor(' + data_str + ', grad_fn=' + str(self.grad_fn) + ')'
     
     def __getitem__(self, idx):
+        if isinstance(idx, Tensor):
+            idx = idx.data
         sliced_data = self.data[idx]
         out = Tensor(sliced_data, _children=(self,), grad_fn='IndexBackward', requires_grad=self.requires_grad)
-        
         def _backward():
             if self.requires_grad:
-                if isinstance(idx, tuple):
-                    np.add.at(self.grad, idx, out.grad)
-                else:
-                    self.grad[idx] += out.grad
+                np.add.at(self.grad, idx, out.grad)
         out._backward = _backward
         return out
+    
+    def item(self,):
+        assert self.data.size == 1, "Only tensors with one element can be converted to Python scalars"
+        return self.data.item()
+        
         
     
         

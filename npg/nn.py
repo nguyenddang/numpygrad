@@ -1,22 +1,40 @@
 import npg 
 
 class Module:
-    
     def __init__(self):
         self.training = True
-    
+        self._modules = {}
+        self._parameters = []
+
     def forward(self, *inputs):
         raise NotImplementedError
-    
-    def zero_grad(self, set_to_none=False):
-        for p in self.parameters:
-            p.grad = None if set_to_none else npg.zeros_like(p)
-            
+
     def parameters(self):
-        return []
-    
+        params = self._parameters.copy()
+        for module in self._modules.values():
+            params.extend(module.parameters())
+        return params
+
+    def add_module(self, name, module):
+        self._modules[name] = module
+
     def __call__(self, *inputs):
         return self.forward(*inputs)
+
+    def __setattr__(self, name, value):
+        if isinstance(value, Module):
+            self._modules[name] = value
+        elif isinstance(value, npg.Tensor) and value.requires_grad:
+            self._parameters.append(value)
+        super().__setattr__(name, value)
+
+    def __repr__(self):
+        # Generate a string representation of the module and its submodules
+        module_str = self.__class__.__name__ + '(\n'
+        for name, module in self._modules.items():
+            module_str += f'  ({name}): {add_indent(repr(module), 2)}\n'
+        module_str += ')'
+        return module_str
 
 # Linear
 class Linear(Module):
@@ -28,9 +46,6 @@ class Linear(Module):
         
     def forward(self, x):
         return x @ self.weight + self.bias
-    
-    def parameters(self):
-        return [self.weight, self.bias] if self.bias is not None else [self.weight]
     
     def __repr__(self):
         return f"npg.nn.Linear({self.weight.data.shape[0]}, {self.weight.data.shape[1]})"
@@ -95,9 +110,6 @@ class LayerNorm(Module):
         norm = (x - mean) / npg.sqrt(var + self.eps)
         out = norm * self.weight + self.bias
         return out
-    
-    def parameters(self):
-        return [self.weight, self.bias] if self.bias is not None else [self.weight]
 
     def __repr__(self):
         return f"npg.nn.LayerNorm({self.weight.data.shape[0]})"
@@ -118,7 +130,61 @@ class Dropout(Module):
     def __repr__(self):
         return f"npg.nn.Dropout(p={self.p})"
 
-# Loss functions
+# Embedding
+class Embedding(Module):
+    def __init__(self, num_embeddings, embedding_dim):
+        super().__init__()
+        self.weight = npg.randn(num_embeddings, embedding_dim, requires_grad=True)
+        
+    def forward(self, x):
+        return self.weight[x]
+    
+    def __repr__(self):
+        return f"npg.nn.Embedding({self.weight.data.shape[0]}, {self.weight.data.shape[1]})"
+    
+# others
+class ModuleList(Module):
+    def __init__(self, modules=None):
+        super().__init__()
+        if modules is None:
+            modules = []
+        self.modules = modules
+        for idx, module in enumerate(modules):
+            self.add_module(str(idx), module)
+
+    def append(self, module):
+        self.modules.append(module)
+        self.add_module(str(len(self.modules) - 1), module)
+
+    def __getitem__(self, idx):
+        return self.modules[idx]
+
+    def __len__(self):
+        return len(self.modules)
+
+    def __iter__(self):
+        return iter(self.modules)
+
+    def forward(self, *inputs):
+        raise NotImplementedError("ModuleList does not implement forward method")
+
+    def __repr__(self):
+        # Generate a string representation of the ModuleList and its modules
+        module_str = self.__class__.__name__ + '(\n'
+        for idx, module in enumerate(self.modules):
+            module_str += f'  ({idx}): {add_indent(repr(module), 2)}\n'
+        module_str += ')'
+        return module_str
+    
+def add_indent(s_, num_spaces):
+    s = s_.split('\n')
+    if len(s) == 1:
+        return s_
+    first = s.pop(0)
+    s = [(num_spaces * ' ') + line for line in s]
+    s = '\n'.join(s)
+    s = first + '\n' + s
+    return s
         
         
 
