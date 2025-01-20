@@ -126,6 +126,8 @@ class GPT(nn.Module):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data = np.zeros_like(module.bias.data)
             module.weight.data = np.ones_like(module.weight.data)
+            
+
         
         
 

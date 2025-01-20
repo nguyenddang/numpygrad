@@ -8,6 +8,7 @@ import numpy as np
 import npg
 import time 
 
+
 #hyper parameters
 batch_size = 12
 block_size = 64
