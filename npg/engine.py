@@ -246,6 +246,13 @@ class Tensor:
         out._backward = _backward
         return out
     
+    def __setitem__(self, idx, value):
+        if isinstance(idx, Tensor):
+            idx = idx.data
+        if isinstance(value, Tensor):
+            value = value.data
+        self.data[idx] = value
+    
     def item(self,):
         assert self.data.size == 1, "Only tensors with one element can be converted to Python scalars"
         return self.data.item()

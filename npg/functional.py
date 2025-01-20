@@ -60,6 +60,9 @@ def zeros_like(x:npg.Tensor) -> npg.Tensor:
 def ones(*shape, requires_grad=False, dtype=np.float32) -> npg.Tensor:
     return npg.Tensor(np.ones(*shape).astype(dtype), requires_grad=requires_grad)
 
+def ones_like(x:npg.Tensor) -> npg.Tensor:
+    return npg.Tensor(np.ones_like(x.data), requires_grad=x.requires_grad)
+
 def tril(x:npg.Tensor) -> npg.Tensor:
     return npg.Tensor(np.tril(x.data), _children=(x,))
 
