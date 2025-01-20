@@ -30,5 +30,4 @@ class AdamW:
 
     def zero_grad(self):
         for param in self.params:
-            if param.grad is not None:
-                param.grad.fill(0)
+            param.grad = None

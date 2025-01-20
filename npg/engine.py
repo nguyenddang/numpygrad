@@ -3,10 +3,10 @@ import numpy as np
 class Tensor:
     def __init__(self, data, _children=(), grad_fn=None, requires_grad=False):
         assert isinstance(data, np.ndarray) or isinstance(data, list), f"Expected data to be of type np.ndarray or list, not {type(data)}"
-        self.data = np.array(data) # make sure data is a numpy array
+        self.data = np.asarray(data) # make sure data is a numpy array
         self.shape = data.shape 
         self._prev = set(_children)
-        self.grad = np.zeros_like(data, dtype=np.float32) if requires_grad else None # only intialize grad if requires_grad is True
+        self.grad = None
         self._backward = lambda: None
         self.grad_fn = grad_fn
         self.requires_grad = requires_grad
@@ -15,7 +15,7 @@ class Tensor:
     def check_op(self, other):
         if not isinstance(other, Tensor):
             # convert to tensor
-            other = Tensor(np.array(other), requires_grad=False)
+            other = Tensor(np.asarray(other), requires_grad=False)
         out_requires_grad = self.requires_grad or other.requires_grad
         return other, out_requires_grad
     
@@ -32,17 +32,27 @@ class Tensor:
         keepdim_other = (len(self.shape) == len(other.shape)) and (len(broadcasted_axes_other)) > 0
         return broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other
     
+    @property
+    def grad(self):
+        if self._grad is None and self.requires_grad:
+            self._grad = np.zeros_like(self.data, dtype=np.float32)
+        return self._grad
+
+    @grad.setter
+    def grad(self, value):
+        self._grad = value
+    
     def __add__(self, other):
         other, out_requires_grad = self.check_op(other)
         out = Tensor(self.data + other.data, _children=(self, other), grad_fn='AddBackward', requires_grad=out_requires_grad)
         broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other = self.check_broadcast(other, out)
         def _backward():
             if self.requires_grad:
-                sgrad = 1.0 * out.grad
-                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else sgrad
+                sgrad = np.sum(out.grad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else out.grad
+                self.grad += sgrad
             if other.requires_grad:
-                ograd = 1.0 * out.grad
-                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else ograd
+                ograd = np.sum(out.grad, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else out.grad
+                other.grad += ograd
         out._backward = _backward
         return out
     
@@ -50,13 +60,15 @@ class Tensor:
         other, out_requires_grad = self.check_op(other)
         out = Tensor(self.data * other.data, _children=(self, other), grad_fn='MulBackward', requires_grad=out_requires_grad)
         broadcasted_axes_self, broadcasted_axes_other, keepdim_self, keepdim_other = self.check_broadcast(other, out)
+        
         def _backward():
             if self.requires_grad:
-                sgrad = other.data * out.grad
-                self.grad += np.sum(sgrad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else sgrad
+                grad_self = np.sum(other.data * out.grad, axis=broadcasted_axes_self, keepdims=keepdim_self) if broadcasted_axes_self else other.data * out.grad
+                self.grad += grad_self
             if other.requires_grad:
-                ograd = self.data * out.grad
-                other.grad += np.sum(ograd, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else ograd
+                grad_other = np.sum(self.data * out.grad, axis=broadcasted_axes_other, keepdims=keepdim_other) if broadcasted_axes_other else self.data * out.grad
+                other.grad += grad_other
+        
         out._backward = _backward
         return out
     
