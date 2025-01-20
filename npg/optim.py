@@ -16,7 +16,6 @@ class AdamW:
         # Perform a single optimization step
         self.t += 1
         for i, param in enumerate(self.params):
-            param_before = param.data.copy()
             if param.grad is None:
                 continue
             grad = param.grad

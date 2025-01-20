@@ -35,17 +35,23 @@ class Module:
             module_str += f'  ({name}): {add_indent(repr(module), 2)}\n'
         module_str += ')'
         return module_str
+    
+    def apply(self, fn):
+        fn(self)
+        for module in self._modules.values():
+            module.apply(fn)
+        return self
 
 # Linear
 class Linear(Module):
     
     def __init__(self, in_features, out_features, bias=True):
         super().__init__()
-        self.weight = npg.randn(in_features, out_features, requires_grad=True)
+        self.weight = npg.randn(out_features, in_features, requires_grad=True)
         self.bias = npg.randn(out_features, requires_grad=True) if bias else None
         
     def forward(self, x):
-        return x @ self.weight + self.bias
+        return x @ self.weight.transpose(0, 1) + self.bias
     
     def __repr__(self):
         return f"npg.nn.Linear({self.weight.data.shape[0]}, {self.weight.data.shape[1]})"
