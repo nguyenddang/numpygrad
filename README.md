@@ -11,6 +11,7 @@ This repo is a decent starting point to understand the internal of autograd engi
 git clone https://github.com/nguyenddang/numpygrad.git
 pip install numpy
 pip install torch       # optional, needed to run tests
+pip install pytest      # for testing
 pip install -e .        # install npg as a library so you only need to do import npg
 ```
 
@@ -94,5 +95,13 @@ iter 109, loss: 2.660579 time: 558.85ms
 iter 110, loss: 2.557863 time: 608.98ms
 ```
 So ... it might take a while but hey it trains!!! Running the same model with Pytorch on CPU (same config everything) takes ~`30ms` per iter so we're about 20x slower:) 
+
+# Run tests
+
+Under `test/` are extensive testing code for comparing gradients calculation between `npg` and `torch`. To run tests:
+```bash
+python -m pytest
+```
+
 
 Enjoy!
